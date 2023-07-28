@@ -1,10 +1,49 @@
 import sys
 import json
+import argparse
 import pandas as pd
+import tkinter as tk
+from tkinter import filedialog as fd
 
-data_filename = sys.argv[1]
-key_filename = sys.argv[2]
-output_filename = sys.argv[3]
+root = tk.Tk()
+root.withdraw()
+
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument('-i',
+                        '--input',
+                        required=False,
+                        help='Name of input Excel file from plate reader')
+arg_parser.add_argument('-k',
+                        '--key',
+                        required=False,
+                        default='plate_map.json',
+                        help='JSON file to convert well IDs to meaningful \
+                            labels. Defaults to plate_map.json')
+arg_parser.add_argument('-o',
+                        '--output',
+                        required=False,
+                        help='Filename for saving processed data')
+args = arg_parser.parse_args()
+
+
+data_filename = args.input
+if not data_filename:
+    data_filename = fd.askopenfilename(initialdir='./Raw_Excel',
+                                       title='Select raw data to process',
+                                       filetypes=[['Excel', 'xlsx']])
+    if data_filename is None: 
+        raise(Exception('No input file selected'))
+
+output_filename = args.output
+if not output_filename:
+    output_filename = fd.asksaveasfilename(initialdir='./Processed_CSV',
+                                            title='Save processed data',
+                                            defaultextension='csv',
+                                            filetypes=[['csv', 'csv']])
+    if output_filename is None: 
+        raise(Exception('No input file selected'))
+
+key_filename = args.key
 with open(key_filename) as key_file:
     key = json.load(key_file)
 print(data_filename)

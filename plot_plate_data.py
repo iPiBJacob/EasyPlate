@@ -6,7 +6,7 @@ import argparse
 import tkinter as tk
 from tkinter import filedialog as fd
 
-root = tk.Tk()
+root = tk.Tk()  # These lines hide the Root tkinter window from view
 root.withdraw()
 
 arg_parser = argparse.ArgumentParser()
@@ -18,7 +18,7 @@ args = arg_parser.parse_args()
 
 filename = args.filename
 if not filename:
-    filename = fd.askopenfile(initialdir='./Processed_CSV', title='Select formatted CSV to plot')
+    filename = fd.askopenfilename(initialdir='./Processed_CSV', title='Select formatted CSV to plot')
     if filename is None: 
         raise(Exception('No filename provided'))
 data = pd.read_csv(filename, index_col='Time [s]')
