@@ -23,6 +23,12 @@ arg_parser.add_argument('-o',
                         '--output',
                         required=False,
                         help='Filename for saving processed data')
+arg_parser.add_argument('-d',
+                        '--delimiter',
+                        required=False,
+                        default='-',
+                        help='Character(s) to place between row\
+                              and column labels')
 args = arg_parser.parse_args()
 
 
@@ -49,17 +55,20 @@ with open(key_filename) as key_file:
 print(data_filename)
 print(key)
 
-data = pd.read_excel(data_filename, skiprows = key['excel_params']['data_start_row'], index_col = 'Time [s]')
+data = pd.read_excel(data_filename,
+                     skiprows = key['excel_params']['data_start_row'],
+                     index_col = 'Time [s]')
 data.drop(['Temp. [°C]', float('NaN'), 'End Time'], inplace=True)
 data = data.T
 
 print(data)
 
 title_dict = {}
+delimiter = args.delimiter
 for head in data.head():
     row = head[0]
     column = head[1:]
-    title_dict[head] = f'{key["column"][column]}-{key["row"][row]}'
+    title_dict[head] = f'{key["column"][column]}{delimiter}{key["row"][row]}'
     if head in key['override_well']:
         title_dict[head] = key['override_well'][head]
 
