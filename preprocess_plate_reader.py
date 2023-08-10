@@ -52,16 +52,12 @@ if not output_filename:
 key_filename = args.key
 with open(key_filename) as key_file:
     key = json.load(key_file)
-print(data_filename)
-print(key)
 
 data = pd.read_excel(data_filename,
                      skiprows = key['excel_params']['data_start_row'],
                      index_col = 'Time [s]')
 data.drop(['Temp. [°C]', float('NaN'), 'End Time'], inplace=True)
 data = data.T
-
-print(data)
 
 title_dict = {}
 delimiter = args.delimiter
