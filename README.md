@@ -26,3 +26,5 @@ To view your data, run `python plot_plate_data.py` and a graph will be made, com
 "-t" or "--title" allows you to pass in a title for the plot, especially useful if you intend to save the plot directly. Spaces can be included in the title if you surround it with quotation marks, eg. `python plot_plate_data.py -t "Sugar Data No Glucose"`
 
 "-s" or "--save", if used, will bring up a prompt to save your plot before displaying it.
+
+"-r" or "--regression" will fit a function to each of your data conditions and print the fit parameters to the console. Current options for regression type are linear and logistic. As an example, if I run `python plot_plate_data.py -r linear` on my data set that has 12 different headings, e.g. "3333-Glu125", then the console will include one line for each in the format `'3333-Glu125': linear_regression_fit(slope=9.518535916369622, intercept=8259.112158935726)` A future update will give the option of printing in a more concise format, e.g. `'3333-Glu125: linear_regression_fit(m=9.518535916369622, b=8259.112158935726)`.
