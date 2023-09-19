@@ -36,19 +36,53 @@ def logistic_fit(x, y):
     print(np.diag(covariance))
     return output
 
+def _check_duplicate(data, header):
+    max_decimals = max([head.count('.') for head in data.columns])
+    if header.count('.') == max_decimals:
+        return True
+    return False
+
+def _dict_to_tuples(input):
+    return [(i,x) for i in input for x in input[i]]
+
+def _pool_replicates(data, exclude):
+    data_dict = {}
+    for header in data.columns:
+        if exclude and any([substr in header for substr in exclude]):
+            continue
+        if _check_duplicate(data, header):
+            label = header.rpartition('.')[0]
+        else:
+            label = header  
+        if label not in data_dict:
+            data_dict[label] = []
+        for time, fluor in zip(data.index, data[header]):
+            data_dict[label].append((time, fluor))
+    return data_dict
+
+def _parse_data(data, exclude):
+    data_dict = {}
+    for header in data.columns:
+        if exclude and any([substr in header for substr in exclude]):
+            continue
+        label = header  
+        if label not in data_dict:
+            data_dict[label] = []
+        for time, fluor in zip(data.index, data[header]):
+            data_dict[label].append((time, fluor))
+    return data_dict
 
 methods = {'linear': linear_fit,
            'logistic': logistic_fit}
-def fit(data: pd.DataFrame, method: str):
-    x = data.index.to_numpy()
+def fit(x, y, method: str):
+    x = np.array(x)
     output = {}
     for label in data.columns:
-        y_fit = data[label].to_numpy()
+        y_fit = np.array(y)
         x_fit = x
         if len(x_fit) != len(y_fit):
             x_fit = x_fit[0:len(y_fit)]
-        output[label] = methods[method](x_fit, y_fit)
-    return output
+        return methods[method](x_fit, y_fit)
 
 
 if __name__ == '__main__':
@@ -67,6 +101,8 @@ if __name__ == '__main__':
                             required=False,
                             choices=['linear', 'logistic'])
     arg_parser.add_argument('-d', '--decimals')
+    arg_parser.add_argument('-sr', '--split_replicates',
+                            action='store_true')
     args = arg_parser.parse_args()
 
 
@@ -77,35 +113,24 @@ if __name__ == '__main__':
             raise(Exception('No filename provided'))
     data = pd.read_csv(filename, index_col='Time [s]')
 
-    exclude = args.exclude
+    if args.split_replicates:
+        raw_data = _parse_data(data, args.exclude)
+    else:
+        raw_data = _pool_replicates(data, args.exclude)
+        
+    for label, xy_pairs in raw_data.items():
+        x = [pair[0] for pair in xy_pairs]
+        y = [pair[1] for pair in xy_pairs]
 
-    partials = {}
-    for label in data.columns:
-        if exclude is not None:
-            if any([substr in label for substr in exclude]):
-                continue
-        index = 0
-        if '.' in label:
-            index = int(label.split('.')[-1])
-        if index not in partials.keys():
-            partials[index] = pd.DataFrame(data.index)
-            partials[index] = partials[index].set_index('Time [s]')
-        header = label.split('.')[0]
+        if args.regression:
+            pprint.pprint(fit(x, y, args.regression))
 
-        column = data[label]
-        column = column.rename(header)
-        partials[index] = partials[index].merge(column.to_frame(), left_index=True, right_index=True)
-
-    data = pd.concat(partials.values())
-
-    if args.regression:
-        pprint.pprint(fit(data, args.regression))
-
-    ax = sns.lineplot(data=data)
+        ax = sns.lineplot(x=x, y=y, label=label)
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
     if args.title:
         plt.title(args.title)
     plt.ylabel('fluorescense [RFU]')
+    plt.xlabel('time (s)')
     plt.subplots_adjust(right=0.7)
     if args.save:
         save_filename = fd.asksaveasfilename()
