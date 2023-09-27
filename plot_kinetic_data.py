@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import argparse
-import pprint
 import tkinter as tk
 from tkinter import filedialog as fd
 from scipy.optimize import curve_fit 
@@ -45,10 +44,20 @@ def _check_duplicate(data, header):
 def _dict_to_tuples(input):
     return [(i,x) for i in input for x in input[i]]
 
-def _pool_replicates(data, exclude):
+def _restrict_fit_window(x_array, y_array, args):
+    lower_bound = float(args.regression_window[0])
+    upper_bound = float(args.regression_window[1])
+    filter_low = x_array > lower_bound
+    filter_high = x_array < upper_bound
+    filter_merge = np.logical_and(filter_high, filter_low)
+    x_fit = x_array[filter_merge]
+    y_fit = y_array[filter_merge]
+    return x_fit, y_fit
+
+def _pool_replicates(data, args):
     data_dict = {}
     for header in data.columns:
-        if exclude and any([substr in header for substr in exclude]):
+        if args.exclude and any([substr in header for substr in args.exclude]):
             continue
         if _check_duplicate(data, header):
             label = header.rpartition('.')[0]
@@ -57,18 +66,28 @@ def _pool_replicates(data, exclude):
         if label not in data_dict:
             data_dict[label] = []
         for time, fluor in zip(data.index, data[header]):
+            '''if args.regression and args.regression_window:
+                if time < float(args.regression_window[0]):
+                    continue  # Don't include time before start of window
+                if time > float(args.regression_window[1]):
+                    continue  # Don't include time after end of window'''
             data_dict[label].append((time, fluor))
     return data_dict
 
-def _parse_data(data, exclude):
+def _parse_data(data, args):
     data_dict = {}
     for header in data.columns:
-        if exclude and any([substr in header for substr in exclude]):
+        if args.exclude and any([substr in header for substr in args.exclude]):
             continue
         label = header  
         if label not in data_dict:
             data_dict[label] = []
         for time, fluor in zip(data.index, data[header]):
+            '''if args.regression and args.regression_window:
+                if time < float(args.regression_window[0]):
+                    continue  # Don't include time before start of window
+                if time > float(args.regression_window[1]):
+                    continue  # Don't include time after end of window'''
             data_dict[label].append((time, fluor))
     return data_dict
 
@@ -100,7 +119,11 @@ if __name__ == '__main__':
     arg_parser.add_argument('-r', '--regression',
                             required=False,
                             choices=['linear', 'logistic'])
-    arg_parser.add_argument('-d', '--decimals')
+    arg_parser.add_argument('-rw', '--regression_window',
+                            nargs=2,
+                            default=None)
+    arg_parser.add_argument('-c', '--convert',
+                            default=None)
     arg_parser.add_argument('-sr', '--split_replicates',
                             action='store_true')
     args = arg_parser.parse_args()
@@ -114,16 +137,22 @@ if __name__ == '__main__':
     data = pd.read_csv(filename, index_col='Time [s]')
 
     if args.split_replicates:
-        raw_data = _parse_data(data, args.exclude)
+        raw_data = _parse_data(data, args)
     else:
-        raw_data = _pool_replicates(data, args.exclude)
-        
-    for label, xy_pairs in raw_data.items():
-        x = [pair[0] for pair in xy_pairs]
-        y = [pair[1] for pair in xy_pairs]
+        raw_data = _pool_replicates(data, args)
+
+    for label, xy_data in raw_data.items():
+        x = np.array([pair[0] for pair in xy_data])
+        y = np.array([pair[1] for pair in xy_data])
+
+        if args.convert:
+            y = y / float(args.convert)
 
         if args.regression:
-            pprint.pprint(fit(x, y, args.regression))
+            x_fit, y_fit = x, y
+            if args.regression_window:
+                x_fit, y_fit = _restrict_fit_window(x, y, args)
+            print(fit(x_fit, y_fit, args.regression))
 
         ax = sns.lineplot(x=x, y=y, label=label)
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
@@ -131,6 +160,8 @@ if __name__ == '__main__':
         plt.title(args.title)
     plt.ylabel('fluorescense [RFU]')
     plt.xlabel('time (s)')
+    if args.convert:
+        plt.ylabel('[product] (M)')
     plt.subplots_adjust(right=0.7)
     if args.save:
         save_filename = fd.asksaveasfilename()
