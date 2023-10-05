@@ -18,9 +18,6 @@ def double_logistic(x, L0, k0, x0_0, L1, k1, x0_1, dy):
     bottom_curve = L1 / (1 + np.exp(-k1 * (x - x0_1)))
     return top_curve + bottom_curve + dy
 
-def dict_to_tuples(input):
-    return [(i,x) for i in input for x in input[i]]
-
 linregress_output = namedtuple('linear_regression_fit', ['slope', 'intercept'])
 def linear_fit(x, y):   
     fit = curve_fit(line, x, y)
@@ -61,16 +58,20 @@ def michaelis_menten_fit(x, y):
     fit = curve_fit(michaelis_menten, x, y)
     return michaelis_menten_output(*fit[0])
 
-def check_duplicate(data, header):
+def _check_duplicate(data, header):
     max_decimals = max([head.count('.') for head in data.columns])
     if header.count('.') == max_decimals:
         return True
     return False
 
+def _dict_to_tuples(input):
+    return [(i,x) for i in input for x in input[i]]
+
 
 float_regex = '([0-9]+([.][0-9]*)?|[.][0-9]+)'
 # Detect a positive float followed by a capital C
 temperature_regex = '(([0-9]+([.][0-9]*)?|[.][0-9]+))C'
+# Detect a positive float followed by a unit in [M, nM, uM, mM]
 concentration_regex = '(([0-9]+([.][0-9]*)?|[.][0-9]+))n?u?m?M'
 
 def melt_curve(data, args):
@@ -110,7 +111,7 @@ def melt_curve(data, args):
                 label = part
 
         if args.split_replicates:
-            if check_duplicate(data, header):
+            if _check_duplicate(data, header):
                 label = f'{label}-{header[-1]}'
             else:
                 label = f'{label}-0'      
@@ -129,7 +130,7 @@ def melt_curve(data, args):
     for label, fits in melt_curves.items():
         # fits form is dict of {temp: [slope, slope...]}
         # Convert to form [(temp: slope), (temp, slope)...]
-        fits_list = dict_to_tuples(fits)  
+        fits_list = _dict_to_tuples(fits)  
         x = [coord[0] for coord in fits_list]
         y = [coord[1] for coord in fits_list]
         plt.scatter(x, y, label=label)
@@ -193,7 +194,7 @@ def Michaelis_Menten_plot(data, args):
     for label, fits in raw_curves.items():
         # fits form is dict of {conc: [slope, slope...]}
         # Convert to form [(conc: slope), (conc, slope)...]
-        fits_list = dict_to_tuples(fits)  
+        fits_list = _dict_to_tuples(fits)  
         x = [coord[0] for coord in fits_list]
         y = [coord[1] for coord in fits_list]
         plt.scatter(x, y, label=label)

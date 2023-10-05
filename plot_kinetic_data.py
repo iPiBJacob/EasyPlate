@@ -36,6 +36,13 @@ def logistic_fit(x, y):
     return output
 
 def _check_duplicate(data, header):
+    '''
+    Detect whether a given column header is a replicate of another column
+    header based on the number of decimals present. Pandas will mark any
+    replicated column header by appending .1, .2, etc. so this counting method
+    only works if all headers in the original .csv file have the same number
+    of decimals
+    '''
     max_decimals = max([head.count('.') for head in data.columns])
     if header.count('.') == max_decimals:
         return True
@@ -45,6 +52,10 @@ def _dict_to_tuples(input):
     return [(i,x) for i in input for x in input[i]]
 
 def _restrict_fit_window(x_array, y_array, args):
+    '''
+    Crop both x_array and y_array based on upper and lower bounds provided
+    for x_array using args.regression_window.
+    '''
     lower_bound = float(args.regression_window[0])
     upper_bound = float(args.regression_window[1])
     filter_low = x_array > lower_bound
@@ -55,6 +66,13 @@ def _restrict_fit_window(x_array, y_array, args):
     return x_fit, y_fit
 
 def _pool_replicates(data, args):
+    '''
+    Convert each column in data to an entry in a dict for easier use later. Any
+    column header containing a substring in args.exclude will be left out of
+    the final dict. Each entry in the output dict will be in the form
+    {label: [(t0,f0), (t1, f1), ...]} where t is time and f is fluoresence.
+    Replicates will be stored in this dict under the same label.
+    '''
     data_dict = {}
     for header in data.columns:
         if args.exclude and any([substr in header for substr in args.exclude]):
@@ -66,15 +84,16 @@ def _pool_replicates(data, args):
         if label not in data_dict:
             data_dict[label] = []
         for time, fluor in zip(data.index, data[header]):
-            '''if args.regression and args.regression_window:
-                if time < float(args.regression_window[0]):
-                    continue  # Don't include time before start of window
-                if time > float(args.regression_window[1]):
-                    continue  # Don't include time after end of window'''
             data_dict[label].append((time, fluor))
     return data_dict
 
 def _parse_data(data, args):
+    '''
+    Convert each column in data to an entry in a dict for easier use later. Any
+    column header containing a substring in args.exclude will be left out of
+    the final dict. Each entry in the output dict will be in the form
+    {label: [(t0,f0), (t1, f1), ...]} where t is time and f is fluoresence.
+    '''
     data_dict = {}
     for header in data.columns:
         if args.exclude and any([substr in header for substr in args.exclude]):
@@ -83,25 +102,15 @@ def _parse_data(data, args):
         if label not in data_dict:
             data_dict[label] = []
         for time, fluor in zip(data.index, data[header]):
-            '''if args.regression and args.regression_window:
-                if time < float(args.regression_window[0]):
-                    continue  # Don't include time before start of window
-                if time > float(args.regression_window[1]):
-                    continue  # Don't include time after end of window'''
             data_dict[label].append((time, fluor))
     return data_dict
 
 methods = {'linear': linear_fit,
            'logistic': logistic_fit}
 def fit(x, y, method: str):
-    x = np.array(x)
-    output = {}
-    for label in data.columns:
-        y_fit = np.array(y)
-        x_fit = x
-        if len(x_fit) != len(y_fit):
-            x_fit = x_fit[0:len(y_fit)]
-        return methods[method](x_fit, y_fit)
+    if len(x) != len(y):  # Ensure lists are same length
+        x = x[0:len(y)]  # len(y) <= len(x) because of possible OVER reads
+    return methods[method](x, y)
 
 
 if __name__ == '__main__':
@@ -152,7 +161,7 @@ if __name__ == '__main__':
             x_fit, y_fit = x, y
             if args.regression_window:
                 x_fit, y_fit = _restrict_fit_window(x, y, args)
-            print(fit(x_fit, y_fit, args.regression))
+            print(f'{label} : {fit(x_fit, y_fit, args.regression)}')
 
         ax = sns.lineplot(x=x, y=y, label=label)
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
