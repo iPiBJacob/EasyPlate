@@ -153,6 +153,8 @@ def melt_curve(data, args):
 
     plt.ylabel('Acivity (RFU/s)')
     plt.xlabel('Temperature (C)')
+    if args.title:
+        plt.title(args.title)
 
 def Michaelis_Menten_plot(data, args):
 
@@ -212,7 +214,8 @@ def Michaelis_Menten_plot(data, args):
     else:
         plt.ylabel('Acivity (RFU/s)')
     plt.xlabel('Substrate Concentration (uM)')
-
+    if args.title:
+        plt.title(args.title)
 
 methods = {'melt_curve': melt_curve,
            'michaelis_menten': Michaelis_Menten_plot}
@@ -224,16 +227,13 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('-f', '--filename',
                             required=False)
-    arg_parser.add_argument('-e', '--exclude',
-                            nargs='+',
-                            help='Any data inlcuding listed strings will not be plotted')
     arg_parser.add_argument('-t', '--title',
                             required=False)
     arg_parser.add_argument('-s', '--save',
                             action='store_true',
                             required=False)
     arg_parser.add_argument('-m', '--method',
-                            required=False,
+                            required=True,
                             choices=['melt_curve', 'michaelis_menten'])
     arg_parser.add_argument('-d', '--delimiter', default='-')
     arg_parser.add_argument('-c', '--curve',
@@ -262,5 +262,9 @@ if __name__ == '__main__':
         method(data, args)
 
     plt.legend()    
-    plt.savefig('MM_curves.eps', format='eps')
+    if args.save:
+        filename = fd.asksaveasfilename()
+        if filename:
+            format = filename.split('.')[-1]
+            plt.save_fig(filename, format=format)
     plt.show()
