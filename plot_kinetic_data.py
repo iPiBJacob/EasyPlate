@@ -84,7 +84,8 @@ def _pool_replicates(data, args):
         if label not in data_dict:
             data_dict[label] = []
         for time, fluor in zip(data.index, data[header]):
-            data_dict[label].append((time, fluor))
+            if np.isnan(float(fluor)): continue
+            data_dict[label].append((time, float(fluor)))
     return data_dict
 
 def _parse_data(data, args):
@@ -102,14 +103,19 @@ def _parse_data(data, args):
         if label not in data_dict:
             data_dict[label] = []
         for time, fluor in zip(data.index, data[header]):
-            data_dict[label].append((time, fluor))
+            if np.isnan(float(fluor)): continue
+            data_dict[label].append((time, float(fluor)))
     return data_dict
 
 methods = {'linear': linear_fit,
            'logistic': logistic_fit}
 def fit(x, y, method: str):
     if len(x) != len(y):  # Ensure lists are same length
-        x = x[0:len(y)]  # len(y) <= len(x) because of possible OVER reads
+        x = x[0:min(len(x), len(y))]
+        y = y[0:min(len(x), len(y))]
+              
+    if len(x) != len(y) or len(x) < 2:
+        return 'fit failed: not enough data'
     return methods[method](x, y)
 
 
@@ -144,15 +150,20 @@ if __name__ == '__main__':
         if filename is None or filename == '': 
             raise(Exception('No filename provided'))
     data = pd.read_csv(filename, index_col='Time [s]')
+    data = data.replace('OVER', np.nan)
 
     if args.split_replicates:
         raw_data = _parse_data(data, args)
     else:
         raw_data = _pool_replicates(data, args)
 
+    print(raw_data)
+
     for label, xy_data in raw_data.items():
         x = np.array([pair[0] for pair in xy_data])
         y = np.array([pair[1] for pair in xy_data])
+
+        if len(x) == 0 or len(y) == 0: continue
 
         if args.convert:
             y = y / float(args.convert)
@@ -161,7 +172,8 @@ if __name__ == '__main__':
             x_fit, y_fit = x, y
             if args.regression_window:
                 x_fit, y_fit = _restrict_fit_window(x, y, args)
-            print(f'{label} : {fit(x_fit, y_fit, args.regression)}')
+            if len(x) > 1 and len(y) > 1:
+                print(f'{label} : {fit(x_fit, y_fit, args.regression)}')
 
         ax = sns.lineplot(x=x, y=y, label=label)
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
