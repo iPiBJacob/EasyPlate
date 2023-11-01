@@ -31,7 +31,7 @@ def logistic_fit(x, y):
     high_x_y = y[x.index(max(x))]  # y_value at high x
     L_estimated = high_x_y-low_x_y  # May not be right value, should have right sign
     fit, covariance = curve_fit(logistic, x, y, p0 = [L_estimated, 0.5, np.mean(x), 1])
-    print(np.diag(covariance))
+    # print(np.diag(covariance))
     output = logistic_output(*fit)
     return output
 
@@ -47,7 +47,7 @@ def double_logistic_fit(x, y):
                                 p0 = [L_estimated, 0.5, np.mean(x), -0.25, 0.5, 60, 1],
                                 bounds = ([-np.inf,      0, 25, -0.3,      0,   55, -np.inf], # Lower bounds
                                           [      0, np.inf, 80,    0, np.inf,   65,  np.inf]))  # Upper bounds
-    print(np.diag(covariance))
+    # print(np.diag(covariance))
     output = double_logistic_output(*[fit])
     return output
 
@@ -67,6 +67,16 @@ def _check_duplicate(data, header):
 def _dict_to_tuples(input):
     return [(i,x) for i in input for x in input[i]]
 
+def _truncate_over_reads(data):
+    last_index = data.index[-1]
+    for header in data.columns:
+        over_indices = data.index[data[header] == 'OVER']
+        if len(over_indices) > 0:
+            index = min(over_indices)
+            if index < last_index:
+                last_index = index
+    return data.truncate(0, after=last_index-1)
+
 
 float_regex = '([0-9]+([.][0-9]*)?|[.][0-9]+)'
 # Detect a positive float followed by a capital C
@@ -83,17 +93,6 @@ def melt_curve(data, args):
                 'logistic': logistic_fit}
     plot_type = {'double_logistic': double_logistic,
                  'logistic': logistic}
-    
-    # Remove any reads of OVER
-    last_index = data.index[-1]
-    for header in data.columns:
-        over_indices = data.index[data[header] == 'OVER']
-        if len(over_indices) > 0:
-            index = min(over_indices)
-            if index < last_index:
-                last_index = index
-    data = data.truncate(0, after=last_index-1)
-
 
     times = data.index.to_numpy()
     melt_curves = {}
@@ -250,6 +249,7 @@ if __name__ == '__main__':
                             action='store_true')
     args = arg_parser.parse_args()
 
+
     filenames = [args.filename]  # Pack in list to match with tkinter output
     if filenames == [None]:
         filenames = fd.askopenfilenames(initialdir='./Processed_CSV', title='Select formatted CSV to plot')
@@ -259,6 +259,7 @@ if __name__ == '__main__':
     method = methods[args.method]
     for filename in filenames:
         data = pd.read_csv(filename, index_col='Time [s]')
+        data = data.replace('OVER', np.nan)
         method(data, args)
 
     plt.legend()    

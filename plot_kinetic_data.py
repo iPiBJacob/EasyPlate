@@ -144,6 +144,7 @@ if __name__ == '__main__':
         if filename is None or filename == '': 
             raise(Exception('No filename provided'))
     data = pd.read_csv(filename, index_col='Time [s]')
+    data = data.replace('OVER', np.nan)
 
     if args.split_replicates:
         raw_data = _parse_data(data, args)
