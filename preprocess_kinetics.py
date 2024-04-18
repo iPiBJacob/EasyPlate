@@ -106,7 +106,7 @@ for row in source.iter_rows(values_only=True):
     if not args.ignore_label:
         title += f'{args.delimiter}{label}'
     if row[0] in key["override_well"]:
-        title = key["override_well"][row[0]]
+        title = key["override_well"][row[0]] + args.delimiter + label
     row = list(row)
     row[0] = title
     output.append(row)

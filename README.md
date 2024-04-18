@@ -7,9 +7,9 @@ To start, I recommend placing the file you want to process in the Raw_Excel fold
 
 To avoid unexpected behavior in downstream applications when you have replicates, please ensure all labels have the same number of decimals. This is due to the way pandas handles duplicate column headings (by tagging all beyond the first with ".1", ".2", etc) and the need for downstream steps to undo that tagging, which is done by counting the decimals. For example, if you have both "70C" and "65.4C" as row labels, change the "70C" to "70.0C" and everything will behave.
 
-## preprocess_plate_reader.py
+## preprocess_kinetics.py
 
-Once you have plate_map.json edited to your liking, run `python preprocess_plate_reader.py`. You will be prompted to select a data file to open. Select your Excel file. After that, you will be prompted for a location to save your output. I recommend doing so in the included Processed_CSV folder. Your plate readings will be saved and labeled, and the metadata from the Excel file (temperature, gain, etc.) will be omitted. You can then use the output with your own code or use the plot_kinetic_data.py script here. There are some useful command line arguments to give more power and flexibility in this process.
+Once you have plate_map.json edited to your liking, run `python preprocess_kinetics.py`. You will be prompted to select a data file to open. Select your Excel file. After that, you will be prompted for a location to save your output. I recommend doing so in the included Processed_CSV folder. Your plate readings will be saved and labeled, and the metadata from the Excel file (temperature, gain, etc.) will be omitted. You can then use the output with your own code or use the plot_kinetic_data.py script here. There are some useful command line arguments to give more power and flexibility in this process.
 
 To avoid unexpected behavior in downstream applications when you have replicates, please ensure all labels have the same number of decimals. This is due to the way pandas handles duplicate column headings (by tagging all beyond the first with ".1", ".2", etc) and the need for downstream steps to undo that tagging, which is done by counting the decimals. For example, if you have both "70C" and "65.4C" as row labels, change the "70C" to "70.0C" and everything will behave.
 
